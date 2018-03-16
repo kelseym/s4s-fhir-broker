@@ -8,7 +8,7 @@ public class PidLookup {
 	private static PreparedStatement update = null;
 	private static PreparedStatement query = null;
 
-	static {
+	private static void dbConnection(){
 
 		String create =
 			"CREATE TABLE pid_lookup ( " +
@@ -21,18 +21,25 @@ public class PidLookup {
 			Statement stmt = conn.createStatement();
 			stmt.executeUpdate(create);
 			stmt.close();
-		} catch (SQLException e) {
+		} catch (Throwable e) {
+			System.out.println("\n ###### Exception creating db connection to: " + Utl.getPidLookupDbURL() + " ######");
+			System.out.println(e.getMessage());
+			e.printStackTrace();
 		}
 		try {
 			insert = conn.prepareStatement("INSERT INTO pid_lookup VALUES (?, ?)");
 			update = conn.prepareStatement("UPDATE pid_lookup SET pid_out = ? WHERE pid_in = ?");
 			query = conn.prepareStatement("SELECT * FROM pid_lookup WHERE pid_in = ?");
-		} catch (SQLException e) {
+		} catch (Throwable e) {
+			System.out.println("\n ###### Exception using db connection to: " + Utl.getPidLookupDbURL() + " ######");
+			System.out.println(e.getMessage());
 			e.printStackTrace();
 		}
 	}
 
 	public static void put(String pidIn, String pidOut) {
+		dbConnection();
+
 		// In testing environment, the relationship will often already be there.
 		String s = PidLookup.get(pidIn);
 		if (s != null && s.equals(pidOut)) return;
@@ -59,6 +66,8 @@ public class PidLookup {
 	}
 
 	public static String get(String pidIn) {
+		dbConnection();
+
 		ResultSet result = null;
 		String pidOut = null;
 		try {
@@ -68,16 +77,17 @@ public class PidLookup {
 			if (result.next()) {
 				pidOut = result.getString("pid_out");
 			}
-		} catch (SQLException e) {
-
+		} catch (Throwable e) {
+			System.out.println("\n ###### Exception using db connection to: " + Utl.getPidLookupDbURL() + " ######");
+			System.out.println(e.getMessage());
 			e.printStackTrace();
 		} finally {
 			try {
 				if (result != null) result.close();
-			} catch (SQLException se) {
-
-				se.printStackTrace();
-			}
+			} catch (Throwable se) {
+				System.out.println("\n ###### Exception using db connection to: " + Utl.getPidLookupDbURL() + " ######");
+				System.out.println(se.getMessage());
+				se.printStackTrace();			}
 		}
 		return pidOut;
 	}
